@@ -1,0 +1,11 @@
+{
+    "telegram": {
+      "token": "6150384952:AAHQFNDwsNZP_wgWf7WHXPl08wjlmdagl3c"
+    },
+    "drf": {
+      "base_url": "http://127.0.0.1:8000",
+      "users_endpoint": "/api/back/users",
+      "create_user_endpoint": "/api/back/users/"
+    }
+  }
+  

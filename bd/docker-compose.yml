@@ -1,0 +1,19 @@
+version: '3.7'
+
+services:
+  db_nrg:
+    container_name: db_bmit
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=134685
+      - POSTGRES_USER=admin
+      - POSTGRES_PDB=bmit
+    image: postgres:15.2
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=artibuk1052@icloud.com
+      - PGADMIN_DEFAULT_PASSWORD=134685
+    ports:
+      - "5050:80"
