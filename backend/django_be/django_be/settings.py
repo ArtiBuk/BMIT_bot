@@ -92,7 +92,7 @@ WSGI_APPLICATION = 'django_be.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'admin',
+        'NAME': 'bmit',
         'USER': 'admin',
         'PASSWORD': '134685',
         'HOST': 'localhost',

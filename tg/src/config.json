@@ -4,8 +4,9 @@
     },
     "drf": {
       "base_url": "http://127.0.0.1:8000",
-      "users_endpoint": "/api/back/users",
-      "create_user_endpoint": "/api/back/users/"
+      "users_view": "/api/back/users/view/",
+      "create_user_endpoint": "/api/back/users/",
+      "create_report":"/api/back/reports/"
     }
   }
   

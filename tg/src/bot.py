@@ -3,7 +3,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import os
 import json
 import logging
-from .handlers import start_handler, username_handler, password_handler, last_name_handler, first_name_handler, birthday_handler, action_handler
+from .handlers import start_handler, username_handler, last_name_handler, first_name_handler, birthday_handler,action_handler,project_handler,date_handler,hours_handler
+
 from .states import RegistrationState
 
 # Установка уровня логирования
@@ -30,13 +31,10 @@ dp = Dispatcher(bot, storage=storage)
 
 dp.register_message_handler(start_handler, commands=['start'])
 dp.register_message_handler(action_handler, state=RegistrationState.WaitingForAction)
+dp.register_message_handler(project_handler, state=RegistrationState.WaitingForProject)
+dp.register_message_handler(date_handler, state=RegistrationState.WaitingForDateProject)
+dp.register_message_handler(hours_handler, state=RegistrationState.WaitingForHoursProject)
 dp.register_message_handler(username_handler, state=RegistrationState.WaitingForUsername)
-dp.register_message_handler(password_handler, state=RegistrationState.WaitingForPassword)
 dp.register_message_handler(last_name_handler, state=RegistrationState.WaitingForLastName)
 dp.register_message_handler(first_name_handler, state=RegistrationState.WaitingForFirstName)
 dp.register_message_handler(birthday_handler, state=RegistrationState.WaitingForBirthday)
-
-
-
-
-

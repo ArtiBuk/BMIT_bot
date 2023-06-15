@@ -8,8 +8,9 @@ services:
     environment:
       - POSTGRES_PASSWORD=134685
       - POSTGRES_USER=admin
-      - POSTGRES_PDB=bmit
+      - POSTGRES_DB=bmit
     image: postgres:15.2
+
   pgadmin:
     image: dpage/pgadmin4
     environment:
