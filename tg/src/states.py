@@ -10,4 +10,8 @@ class RegistrationState(StatesGroup):
     WaitingForProject = State()
     WaitingForDateProject = State()
     WaitingForHoursProject = State()
-
+    WaitingForTextReportProject = State()
+    WaitingForViewsReport = State()
+    WaitingForViewsReportDate = State()
+    WaitingForViewsReportProject = State()
+    
