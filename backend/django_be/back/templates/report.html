@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .zero-value {
+            color: red;
+        }
+    </style>
+</head>
+<body class="container-fluid">
+    <form method="post" action="{% url 'report' %}">
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="col">
+                <label for="start_date">Start Date:</label>
+                <input type="text" class="form-control" id="start_date" name="start_date" required>
+            </div>
+            <div class="col">
+                <label for="end_date">End Date:</label>
+                <input type="text" class="form-control" id="end_date" name="end_date" required>
+            </div>
+            <div class="col">
+                <label for="user_id">User:</label>
+                <select class="form-control" id="user_id" name="user_id">
+                    <option value="">All</option>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <label for="project_id">Project:</label>
+                <select class="form-control" id="project_id" name="project_id">
+                    <option value="">All</option>
+                    {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </div>
+    </form>
+
+    {% if table_data %}
+        <table class="table table-striped mt-4">
+            <thead>
+                <tr>
+                    {% for header in table_header %}
+                        <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in table_data %}
+                    <tr>
+                        {% for value in row %}
+                            <td{% if value == 0 %} class="zero-value"{% endif %}>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <!-- Include Bootstrap JS (optional) -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

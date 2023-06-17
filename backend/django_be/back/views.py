@@ -3,7 +3,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import User, Projects, Report
 from rest_framework.serializers import ModelSerializer
-from django.shortcuts import get_object_or_404
+from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import render
+from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
 
 
 class UserSerializer(ModelSerializer):
@@ -28,9 +32,6 @@ class ProjectSerializer(ModelSerializer):
 
 
 class ReportSerializer(ModelSerializer):
-    # user = UserSerializer()
-    # project = ProjectSerializer()
-
     class Meta:
         model = Report
         fields = ["date", "hours", "user", "project", "text_report"]
@@ -93,3 +94,65 @@ def view_report(request):
 
     serializer = ReportSerializer(reports, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@login_required
+def report_view(request):
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        start_date = datetime.strptime(start_date, '%d.%m.%Y').date()
+        end_date = datetime.strptime(end_date, '%d.%m.%Y').date()
+
+        # Получение параметров фильтрации
+        user_id = request.POST.get('user_id')
+        project_id = request.POST.get('project_id')
+
+        # Получение всех пользователей и проектов
+        users = User.objects.all()
+        projects = Projects.objects.all()
+
+        # Создание заголовка таблицы
+        table_header = ['Название проекта', 'Фамилия Имя Пользователя']
+        current_date = start_date
+        while current_date <= end_date:
+            table_header.append(current_date.strftime('%d.%m.%Y'))
+            current_date += timedelta(days=1)
+
+        # Создание таблицы с данными
+        table_data = []
+        for project in projects:
+            for user in project.users.all():
+                if user_id and user_id != str(user.id):
+                    continue
+                if project_id and project_id != str(project.id):
+                    continue
+                row = [project.name, user.get_full_name()]
+                current_date = start_date
+                while current_date <= end_date:
+                    total_hours = Report.objects.filter(
+                        date=current_date,
+                        user=user,
+                        project=project
+                    ).aggregate(Sum('hours')).get('hours__sum', 0)
+                    row.append(total_hours or 0)
+                    current_date += timedelta(days=1)
+                table_data.append(row)
+
+        context = {
+            'table_header': table_header,
+            'table_data': table_data,
+            'users': users,
+            'projects': projects
+        }
+
+        return render(request, 'report.html', context)
+    else:
+        users = User.objects.all()
+        projects = Projects.objects.all()
+        context = {
+            'users': users,
+            'projects': projects
+        }
+        return render(request, 'report.html', context)
+
+
