@@ -6,7 +6,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 class User(AbstractUser):
     birthday = models.DateField(blank=True, null=True)
     tg_id = models.IntegerField(unique=True, null=True)
-    projects = models.ManyToManyField("Projects", related_name="users", blank=True)
 
     def __str__(self):
         return self.username
@@ -17,12 +16,15 @@ class Projects(models.Model):
     short_description = models.CharField(
         max_length=64, blank=True, verbose_name="Краткое описание"
     )
+    users = models.ManyToManyField(User, related_name="projects", blank=True, verbose_name="Пользователи")
 
     class Meta:
         verbose_name_plural = "Проекты"
 
     def __str__(self):
         return self.name
+
+
 
 
 class Report(models.Model):
@@ -41,6 +43,8 @@ class Report(models.Model):
 
     class Meta:
         verbose_name_plural = "Данные для отчета"
+        unique_together = ("user", "project", "date")
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name}"
+

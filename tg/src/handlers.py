@@ -15,7 +15,8 @@ async def start_handler(message: types.Message, state: FSMContext):
         existing_username,
         existing_projects,
         existing_user_id,
-        existing_projects_id,
+        existing_project_ids,
+        active_project_id
     ) = await check_existing_user(tg_id)
 
     if existing_username:
@@ -33,8 +34,36 @@ async def start_handler(message: types.Message, state: FSMContext):
         tg_id=tg_id,
         projects=existing_projects,
         user_id=existing_user_id,
-        projects_id=existing_projects_id,
+        project_ids=existing_project_ids,
+        active_project_id=active_project_id
     )
+
+# async def start_handler(message: types.Message, state: FSMContext):
+#     tg_id = message.from_user.id
+#     (
+#         existing_username,
+#         existing_projects,
+#         existing_user_id,
+#         existing_projects_id,
+#     ) = await check_existing_user(tg_id)
+
+#     if existing_username:
+#         await message.answer(
+#             f"Привет, {existing_username}!", reply_markup=get_main_keyboard()
+#         )
+#         await RegistrationState.WaitingForAction.set()
+#     else:
+#         await message.answer(
+#             "Сейчас начнется регистрация. Введите ваше имя пользователя:"
+#         )
+#         await RegistrationState.WaitingForUsername.set()
+
+#     await state.update_data(
+#         tg_id=tg_id,
+#         projects=existing_projects,
+#         user_id=existing_user_id,
+#         projects_id=existing_projects_id,
+#     )
 
 
 async def action_handler(message: types.Message, state: FSMContext):
@@ -370,7 +399,6 @@ async def birthday_handler(message: types.Message, state: FSMContext):
     # Сброс состояния после завершения регистрации
     await state.finish()
 
-
 async def check_existing_user(tg_id):
     # Получение абсолютного пути к файлу config.json
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -383,30 +411,85 @@ async def check_existing_user(tg_id):
     drf_config = config.get("drf", {})
     base_url = drf_config.get("base_url")
     users_view = drf_config.get("users_view")
+    view_projects = drf_config.get("view_projects")
 
-    if not base_url or not users_view:
-        return None, None, None, None
+    if not base_url or not users_view or not view_projects:
+        return None, None, None, None, None
 
     # Отправка GET-запроса для получения списка пользователей
-    api_url = base_url + users_view
+    api_url_users = base_url + users_view
 
     async with aiohttp.ClientSession(trust_env=True) as session:
-        async with session.get(api_url, ssl=False) as response:
+        async with session.get(api_url_users, ssl=False) as response:
             if response.status == 200:
                 try:
                     users = await response.json()
                     for user in users:
                         if user.get("tg_id") == tg_id:
-                            return (
-                                user.get("username"),
-                                user.get("projects"),
-                                user.get("id"),
-                                user.get("projects")[0].get("id"),
-                            )
+                            user_id = user.get("id")
+                            api_url_projects = base_url + view_projects
+                            async with session.get(api_url_projects, ssl=False) as response_projects:
+                                if response_projects.status == 200:
+                                    try:
+                                        projects_data = await response_projects.json()
+                                        user_projects = [
+                                            project for project in projects_data if user_id in [
+                                                user.get("id") for user in project.get("users")
+                                            ]
+                                        ]
+                                        project_ids = [project.get("id") for project in user_projects]
+                                        return (
+                                            user.get("username"),
+                                            user_projects,
+                                            user_id,
+                                            project_ids,
+                                            user_projects[0].get("id") if user_projects else None
+                                        )
+                                    except json.JSONDecodeError:
+                                        pass
                 except json.JSONDecodeError:
                     pass
 
-    return None, None, None, None
+    return None, None, None, None, None
+
+
+
+# async def check_existing_user(tg_id):
+#     # Получение абсолютного пути к файлу config.json
+#     current_dir = os.path.dirname(os.path.abspath(__file__))
+#     config_path = os.path.join(current_dir, "config.json")
+
+#     # Чтение конфигурационного файла
+#     with open(config_path, "r") as config_file:
+#         config = json.load(config_file)
+
+#     drf_config = config.get("drf", {})
+#     base_url = drf_config.get("base_url")
+#     users_view = drf_config.get("users_view")
+
+#     if not base_url or not users_view:
+#         return None, None, None, None
+
+#     # Отправка GET-запроса для получения списка пользователей
+#     api_url = base_url + users_view
+
+#     async with aiohttp.ClientSession(trust_env=True) as session:
+#         async with session.get(api_url, ssl=False) as response:
+#             if response.status == 200:
+#                 try:
+#                     users = await response.json()
+#                     for user in users:
+#                         if user.get("tg_id") == tg_id:
+#                             return (
+#                                 user.get("username"),
+#                                 user.get("projects"),
+#                                 user.get("id"),
+#                                 user.get("projects")[0].get("id"),
+#                             )
+#                 except json.JSONDecodeError:
+#                     pass
+
+#     return None, None, None, None
 
 
 async def is_valid_username(username):

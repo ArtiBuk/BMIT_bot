@@ -6,15 +6,7 @@ from rest_framework.serializers import ModelSerializer
 from django.shortcuts import get_object_or_404
 
 
-class ProjectSerializer(ModelSerializer):
-    class Meta:
-        model = Projects
-        fields = ["id", "name"]
-
-
 class UserSerializer(ModelSerializer):
-    projects = ProjectSerializer(many=True)
-
     class Meta:
         model = User
         fields = [
@@ -23,15 +15,25 @@ class UserSerializer(ModelSerializer):
             "last_name",
             "birthday",
             "tg_id",
-            "projects",
             "id",
         ]
 
 
+class ProjectSerializer(ModelSerializer):
+    users = UserSerializer(many=True)
+
+    class Meta:
+        model = Projects
+        fields = ["id", "name", "short_description", "users"]
+
+
 class ReportSerializer(ModelSerializer):
+    # user = UserSerializer()
+    # project = ProjectSerializer()
+
     class Meta:
         model = Report
-        fields = ["date", "hours", "user", "project", "text_report", "user"]
+        fields = ["date", "hours", "user", "project", "text_report"]
 
 
 @api_view(["POST"])
@@ -56,6 +58,13 @@ def create_report(request):
 def view_users(request):
     users = User.objects.all()
     serializer = UserSerializer(users, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def view_projects(request):
+    projects = Projects.objects.all()
+    serializer = ProjectSerializer(projects, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
