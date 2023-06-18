@@ -37,3 +37,11 @@ def get_month_buttons():
     for month in months:
         keyboard.add(KeyboardButton(month))
     return keyboard
+
+def get_back_button():
+    return ReplyKeyboardMarkup(resize_keyboard=True).add(
+        KeyboardButton("Назад"))
+
+def add_back_button(keyboard: ReplyKeyboardMarkup):
+    keyboard.add(KeyboardButton("Назад"))
+    return keyboard

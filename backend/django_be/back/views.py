@@ -10,7 +10,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
+from openpyxl.comments import Comment
 from openpyxl.utils import get_column_letter
+
 
 class UserSerializer(ModelSerializer):
     class Meta:
@@ -97,6 +99,8 @@ def view_report(request):
     serializer = ReportSerializer(reports, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
 @login_required
 def report_view(request):
     if request.method == 'POST':
@@ -122,6 +126,7 @@ def report_view(request):
 
         # Создание таблицы с данными
         table_data = []
+        comments_data = []
         for project in projects:
             for user in project.users.all():
                 if user_id and user_id != str(user.id):
@@ -129,16 +134,21 @@ def report_view(request):
                 if project_id and project_id != str(project.id):
                     continue
                 row = [project.name, user.get_full_name()]
+                comments_row = ['', '']
                 current_date = start_date
                 while current_date <= end_date:
-                    total_hours = Report.objects.filter(
+                    reports = Report.objects.filter(
                         date=current_date,
                         user=user,
                         project=project
-                    ).aggregate(Sum('hours')).get('hours__sum')
+                    )
+                    total_hours = reports.aggregate(Sum('hours')).get('hours__sum')
+                    report_text = ' '.join(report.text_report for report in reports)
                     row.append(total_hours or '')
+                    comments_row.append(report_text)
                     current_date += timedelta(days=1)
                 table_data.append(row)
+                comments_data.append(comments_row)
 
         context = {
             'table_header': table_header,
@@ -194,6 +204,12 @@ def report_view(request):
                         current_date = start_date + timedelta(days=col_index - 3)
                         if current_date.weekday() >= 5:  # Проверка на выходные дни
                             cell.fill = weekend_fill
+                            
+                        # Добавление комментария к ячейке
+                        comment_text = comments_data[row_index - 2][col_index - 1]
+                        if comment_text:
+                            comment = Comment(text=comment_text, author='Report System')
+                            cell.comment = comment
 
                     cell.alignment = data_alignment
 
@@ -209,6 +225,3 @@ def report_view(request):
             'projects': projects
         }
         return render(request, 'report.html', context)
-    
-
-
