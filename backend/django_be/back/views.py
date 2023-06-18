@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from .models import User, Projects, Report
 from rest_framework.serializers import ModelSerializer
 from django.db.models import Sum
-from django.http import HttpResponse
 from django.shortcuts import render
 from datetime import datetime, timedelta
 from django.contrib.auth.decorators import login_required
-
+from django.http import HttpResponse
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
+from openpyxl.utils import get_column_letter
 
 class UserSerializer(ModelSerializer):
     class Meta:
@@ -112,10 +114,10 @@ def report_view(request):
         projects = Projects.objects.all()
 
         # Создание заголовка таблицы
-        table_header = ['Название проекта', 'Фамилия Имя Пользователя']
+        table_header = ['Проект', 'Сотрудник']
         current_date = start_date
         while current_date <= end_date:
-            table_header.append(current_date.strftime('%d.%m.%Y'))
+            table_header.append(current_date.strftime('%d.%m'))
             current_date += timedelta(days=1)
 
         # Создание таблицы с данными
@@ -133,8 +135,8 @@ def report_view(request):
                         date=current_date,
                         user=user,
                         project=project
-                    ).aggregate(Sum('hours')).get('hours__sum', 0)
-                    row.append(total_hours or 0)
+                    ).aggregate(Sum('hours')).get('hours__sum')
+                    row.append(total_hours or '')
                     current_date += timedelta(days=1)
                 table_data.append(row)
 
@@ -145,6 +147,59 @@ def report_view(request):
             'projects': projects
         }
 
+
+        if 'export' in request.POST:
+            # Создание Excel-отчета
+            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename=report.xlsx'
+
+            workbook = Workbook()
+            worksheet = workbook.active
+
+            # Стилизация заголовка
+            header_fill = PatternFill(start_color="FFD6DCE5", end_color="FFD6DCE5", fill_type="solid")
+            header_font = Font(bold=True)
+            header_border = Border(bottom=Side(border_style="thin"))
+            header_alignment = Alignment(horizontal="center", vertical="center")
+
+            for index, header in enumerate(table_header, start=1):
+                cell = worksheet.cell(row=1, column=index, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.border = header_border
+                cell.alignment = header_alignment
+
+            # Стилизация данных
+            data_fill = PatternFill(start_color="FFFFFFFF", end_color="FFFFFFFF", fill_type="solid")
+            weekend_fill = PatternFill(start_color="FFC0C0C0", end_color="FFC0C0C0", fill_type="solid")
+            user_fill = PatternFill(start_color="FFFFC000", end_color="FFFFC000", fill_type="solid")
+            project_fill = PatternFill(start_color="FF92D050", end_color="FF92D050", fill_type="solid")
+            border = Border(left=Side(border_style="thin"), right=Side(border_style="thin"), top=Side(border_style="thin"), bottom=Side(border_style="thin"))
+            data_alignment = Alignment(horizontal="center", vertical="center")
+
+            for row_index, row_data in enumerate(table_data, start=2):
+                for col_index, value in enumerate(row_data, start=1):
+                    cell = worksheet.cell(row=row_index, column=col_index, value=value)
+                    cell.fill = data_fill
+                    cell.border = border
+
+                    # Стилизация столбцов Проект и Сотрудник
+                    if col_index == 1:
+                        cell.fill = project_fill
+                    elif col_index == 2:
+                        cell.fill = user_fill
+
+                    # Стилизация столбцов Дат и Количество часов
+                    if col_index > 2:
+                        current_date = start_date + timedelta(days=col_index - 3)
+                        if current_date.weekday() >= 5:  # Проверка на выходные дни
+                            cell.fill = weekend_fill
+
+                    cell.alignment = data_alignment
+
+            workbook.save(response)
+            return response
+
         return render(request, 'report.html', context)
     else:
         users = User.objects.all()
@@ -154,5 +209,6 @@ def report_view(request):
             'projects': projects
         }
         return render(request, 'report.html', context)
+    
 
 

@@ -8,6 +8,9 @@
         .zero-value {
             color: red;
         }
+        td {
+            width: 100px;  /* Измените значение ширины ячейки по своему усмотрению */
+        }
     </style>
 </head>
 <body class="container-fluid">
@@ -42,6 +45,7 @@
             </div>
             <div class="col">
                 <button type="submit" class="btn btn-primary">Generate Report</button>
+                <button type="submit" class="btn btn-success" name="export">Export</button>
             </div>
         </div>
     </form>
@@ -59,7 +63,7 @@
                 {% for row in table_data %}
                     <tr>
                         {% for value in row %}
-                            <td{% if value == 0 %} class="zero-value"{% endif %}>{{ value }}</td>
+                            <td{% if value == '' %} class="zero-value"{% endif %}{% if loop.index0 == 2 %} class="text-center"{% endif %}>{{ value }}</td>
                         {% endfor %}
                     </tr>
                 {% endfor %}
