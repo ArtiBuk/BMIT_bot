@@ -14,4 +14,3 @@ class RegistrationState(StatesGroup):
     WaitingForViewsReport = State()
     WaitingForViewsReportDate = State()
     WaitingForViewsReportProject = State()
-    

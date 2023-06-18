@@ -16,15 +16,15 @@ class Projects(models.Model):
     short_description = models.CharField(
         max_length=64, blank=True, verbose_name="Краткое описание"
     )
-    users = models.ManyToManyField(User, related_name="projects", blank=True, verbose_name="Пользователи")
+    users = models.ManyToManyField(
+        User, related_name="projects", blank=True, verbose_name="Пользователи"
+    )
 
     class Meta:
         verbose_name_plural = "Проекты"
 
     def __str__(self):
         return self.name
-
-
 
 
 class Report(models.Model):
@@ -47,4 +47,3 @@ class Report(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name}"
-

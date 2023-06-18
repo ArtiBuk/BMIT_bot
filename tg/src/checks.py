@@ -3,6 +3,7 @@ import json
 import os
 import re
 
+
 async def check_existing_user(tg_id):
     # Получение абсолютного пути к файлу config.json
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,22 +33,33 @@ async def check_existing_user(tg_id):
                         if user.get("tg_id") == tg_id:
                             user_id = user.get("id")
                             api_url_projects = base_url + view_projects
-                            async with session.get(api_url_projects, ssl=False) as response_projects:
+                            async with session.get(
+                                api_url_projects, ssl=False
+                            ) as response_projects:
                                 if response_projects.status == 200:
                                     try:
                                         projects_data = await response_projects.json()
                                         user_projects = [
-                                            project for project in projects_data if user_id in [
-                                                user.get("id") for user in project.get("users")
+                                            project
+                                            for project in projects_data
+                                            if user_id
+                                            in [
+                                                user.get("id")
+                                                for user in project.get("users")
                                             ]
                                         ]
-                                        project_ids = [project.get("id") for project in user_projects]
+                                        project_ids = [
+                                            project.get("id")
+                                            for project in user_projects
+                                        ]
                                         return (
                                             user.get("username"),
                                             user_projects,
                                             user_id,
                                             project_ids,
-                                            user_projects[0].get("id") if user_projects else None
+                                            user_projects[0].get("id")
+                                            if user_projects
+                                            else None,
                                         )
                                     except json.JSONDecodeError:
                                         pass
@@ -67,7 +79,7 @@ async def is_valid_username(username):
 
 # Функция для проверки формата даты
 def is_valid_date(date):
-    pattern = r"\d{4}-\d{2}-\d{2}"
+    pattern = r"\d{4}.\d{2}.\d{2}"
     return re.match(pattern, date) is not None
 
 
@@ -76,8 +88,9 @@ def is_valid_hours(hours):
     pattern = r"\d{1,2}"
     return re.match(pattern, hours) is not None
 
+
 def is_back(message):
-    if message.lower() == 'назад':
+    if message.lower() == "назад":
         return True
     else:
         return False

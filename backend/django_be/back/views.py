@@ -100,28 +100,27 @@ def view_report(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
 @login_required
 def report_view(request):
-    if request.method == 'POST':
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
-        start_date = datetime.strptime(start_date, '%d.%m.%Y').date()
-        end_date = datetime.strptime(end_date, '%d.%m.%Y').date()
+    if request.method == "POST":
+        start_date = request.POST.get("start_date")
+        end_date = request.POST.get("end_date")
+        start_date = datetime.strptime(start_date, "%d.%m.%Y").date()
+        end_date = datetime.strptime(end_date, "%d.%m.%Y").date()
 
         # Получение параметров фильтрации
-        user_id = request.POST.get('user_id')
-        project_id = request.POST.get('project_id')
+        user_id = request.POST.get("user_id")
+        project_id = request.POST.get("project_id")
 
         # Получение всех пользователей и проектов
         users = User.objects.all()
         projects = Projects.objects.all()
 
         # Создание заголовка таблицы
-        table_header = ['Проект', 'Сотрудник']
+        table_header = ["Проект", "Сотрудник"]
         current_date = start_date
         while current_date <= end_date:
-            table_header.append(current_date.strftime('%d.%m'))
+            table_header.append(current_date.strftime("%d.%m"))
             current_date += timedelta(days=1)
 
         # Создание таблицы с данными
@@ -134,40 +133,41 @@ def report_view(request):
                 if project_id and project_id != str(project.id):
                     continue
                 row = [project.name, user.get_full_name()]
-                comments_row = ['', '']
+                comments_row = ["", ""]
                 current_date = start_date
                 while current_date <= end_date:
                     reports = Report.objects.filter(
-                        date=current_date,
-                        user=user,
-                        project=project
+                        date=current_date, user=user, project=project
                     )
-                    total_hours = reports.aggregate(Sum('hours')).get('hours__sum')
-                    report_text = ' '.join(report.text_report for report in reports)
-                    row.append(total_hours or '')
+                    total_hours = reports.aggregate(Sum("hours")).get("hours__sum")
+                    report_text = " ".join(report.text_report for report in reports)
+                    row.append(total_hours or "")
                     comments_row.append(report_text)
                     current_date += timedelta(days=1)
                 table_data.append(row)
                 comments_data.append(comments_row)
 
         context = {
-            'table_header': table_header,
-            'table_data': table_data,
-            'users': users,
-            'projects': projects
+            "table_header": table_header,
+            "table_data": table_data,
+            "users": users,
+            "projects": projects,
         }
 
-
-        if 'export' in request.POST:
+        if "export" in request.POST:
             # Создание Excel-отчета
-            response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            response['Content-Disposition'] = 'attachment; filename=report.xlsx'
+            response = HttpResponse(
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            response["Content-Disposition"] = "attachment; filename=report.xlsx"
 
             workbook = Workbook()
             worksheet = workbook.active
 
             # Стилизация заголовка
-            header_fill = PatternFill(start_color="FFD6DCE5", end_color="FFD6DCE5", fill_type="solid")
+            header_fill = PatternFill(
+                start_color="FFD6DCE5", end_color="FFD6DCE5", fill_type="solid"
+            )
             header_font = Font(bold=True)
             header_border = Border(bottom=Side(border_style="thin"))
             header_alignment = Alignment(horizontal="center", vertical="center")
@@ -180,11 +180,24 @@ def report_view(request):
                 cell.alignment = header_alignment
 
             # Стилизация данных
-            data_fill = PatternFill(start_color="FFFFFFFF", end_color="FFFFFFFF", fill_type="solid")
-            weekend_fill = PatternFill(start_color="FFC0C0C0", end_color="FFC0C0C0", fill_type="solid")
-            user_fill = PatternFill(start_color="FFFFC000", end_color="FFFFC000", fill_type="solid")
-            project_fill = PatternFill(start_color="FF92D050", end_color="FF92D050", fill_type="solid")
-            border = Border(left=Side(border_style="thin"), right=Side(border_style="thin"), top=Side(border_style="thin"), bottom=Side(border_style="thin"))
+            data_fill = PatternFill(
+                start_color="FFFFFFFF", end_color="FFFFFFFF", fill_type="solid"
+            )
+            weekend_fill = PatternFill(
+                start_color="FFC0C0C0", end_color="FFC0C0C0", fill_type="solid"
+            )
+            user_fill = PatternFill(
+                start_color="FFFFC000", end_color="FFFFC000", fill_type="solid"
+            )
+            project_fill = PatternFill(
+                start_color="FF92D050", end_color="FF92D050", fill_type="solid"
+            )
+            border = Border(
+                left=Side(border_style="thin"),
+                right=Side(border_style="thin"),
+                top=Side(border_style="thin"),
+                bottom=Side(border_style="thin"),
+            )
             data_alignment = Alignment(horizontal="center", vertical="center")
 
             for row_index, row_data in enumerate(table_data, start=2):
@@ -204,11 +217,11 @@ def report_view(request):
                         current_date = start_date + timedelta(days=col_index - 3)
                         if current_date.weekday() >= 5:  # Проверка на выходные дни
                             cell.fill = weekend_fill
-                            
+
                         # Добавление комментария к ячейке
                         comment_text = comments_data[row_index - 2][col_index - 1]
                         if comment_text:
-                            comment = Comment(text=comment_text, author='Report System')
+                            comment = Comment(text=comment_text, author="Report System")
                             cell.comment = comment
 
                     cell.alignment = data_alignment
@@ -216,12 +229,9 @@ def report_view(request):
             workbook.save(response)
             return response
 
-        return render(request, 'report.html', context)
+        return render(request, "report.html", context)
     else:
         users = User.objects.all()
         projects = Projects.objects.all()
-        context = {
-            'users': users,
-            'projects': projects
-        }
-        return render(request, 'report.html', context)
+        context = {"users": users, "projects": projects}
+        return render(request, "report.html", context)
