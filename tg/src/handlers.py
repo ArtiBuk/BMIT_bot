@@ -4,6 +4,7 @@ import aiohttp
 import json
 import os
 import datetime
+from itertools import groupby
 from src.states import RegistrationState
 from src.keyboard import (
     get_main_keyboard,
@@ -173,16 +174,29 @@ async def project_view_handler(message: types.Message, state: FSMContext):
                                 and r.get("project") == project_id
                             ]
 
-                            # Отправка пользователю отфильтрованных данных
-                            if filtered_reports:
-                                for report in filtered_reports:
-                                    date = datetime.datetime.strptime(
-                                        report.get("date"), "%Y-%m-%d"
-                                    ).strftime("%d.%m.%Y")
+                            # Преобразование даты из строки в datetime
+                            for report in filtered_reports:
+                                report["date"] = datetime.datetime.strptime(
+                                    report["date"], "%Y-%m-%d"
+                                )
+
+                            # Сортировка отчетов по дате
+                            sorted_reports = sorted(
+                                filtered_reports, key=lambda r: r["date"]
+                            )
+
+                            # Преобразование даты обратно из datetime в строку
+                            for report in sorted_reports:
+                                report["date"] = report["date"].strftime("%d.%m.%Y")
+
+                            # Отправка пользователю отсортированных данных
+                            if sorted_reports:
+                                for report in sorted_reports:
+                                    date = report.get("date")
                                     hours = report.get("hours")
                                     text_report = report.get("text_report")
 
-                                    message_text = f"Дата: {date}\nЧасы: {hours}\nОтчет: {text_report}"
+                                    message_text = f"Дата: {date}\nЧасы: {hours}\nОтчет:\n{text_report}"
                                     await message.answer(message_text)
                             else:
                                 await message.answer(

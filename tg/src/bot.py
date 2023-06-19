@@ -29,6 +29,9 @@ import asyncio
 # Установка уровня логирования
 logging.basicConfig(level=logging.INFO)
 
+# Временая зона
+KRSK_TZ = pytz.timezone("Asia/Krasnoyarsk")
+
 # Получение логгера
 logger = logging.getLogger(__name__)
 # Получение абсолютного пути к файлу bot.py
@@ -77,8 +80,6 @@ dp.register_message_handler(
     birthday_handler, state=RegistrationState.WaitingForBirthday
 )
 
-KRSK_TZ = pytz.timezone("Asia/Krasnoyarsk")
-
 
 async def get_json(url):
     async with aiohttp.ClientSession() as session:
@@ -87,24 +88,28 @@ async def get_json(url):
 
 
 async def check_reports():
+    base_url = CONFIG["drf"]["base_url"]
+    users_view_endpoint = CONFIG["drf"]["users_view"]
+    view_report_endpoint = CONFIG["drf"]["view_report"]
+
     today = datetime.date.today()
     formatted_today = today.strftime("%d.%m.%Y")
-    users = await get_json("http://127.0.0.1:8000/api/back/users/view/")
+    users = await get_json(f"{base_url}{users_view_endpoint}")
     for user in users:
         user_id = user["id"]
         user_reports = await get_json(
-            f"http://127.0.0.1:8000/api/back/reports/view/?user_id={user_id}"
+            f"{base_url}{view_report_endpoint}?user_id={user_id}"
         )
         if not any(report["date"] == today.isoformat() for report in user_reports):
             await bot.send_message(
                 user["tg_id"],
-                f"Напоминание, отчет за {formatted_today} не предоставлен",
+                f"Напоминание: отчет за {formatted_today} не предоставлен",
             )
 
 
 async def on_startup(dp):
     await asyncio.sleep(1)
     scheduler = AsyncIOScheduler(timezone=KRSK_TZ)
-    scheduler.add_job(check_reports, "cron", hour=20)
+    scheduler.add_job(check_reports, "cron", hour=20, minute=0)
     scheduler.add_job(check_reports, "cron", hour=23, minute=59)
     scheduler.start()
